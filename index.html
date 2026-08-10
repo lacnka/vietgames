@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ô Ăn Quan — Portable Edition</title>
+<meta name="description" content="A 54-card digital adaptation of the traditional Vietnamese game Ô Ăn Quan. Play vs AI, online 1v1, or learn the rules.">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+/* ============================== STYLE ============================== */
+:root{
+  --bg:#F1E7D2; --bg-deep:#E4D6B4; --ink:#2E2A1F; --ink-soft:#6A5F49;
+  --wood:#8A6A46; --orange:#E07A2C; --orange-deep:#B85F1D;
+  --green:#4C8C52; --green-deep:#356138; --card-cream:#FFFDF7;
+  --line:rgba(46,42,31,.15); --shadow:0 10px 26px rgba(46,42,31,.14); --radius:14px;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Roboto',Arial,sans-serif;line-height:1.6;}
+h1,h2,h3,h4{margin:0 0 .4em;font-weight:700;}
+a{color:var(--orange-deep);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px;}
+.hidden{display:none !important;}
+
+/* nav */
+.site-nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:16px 28px;background:var(--card-cream);border-bottom:1px solid var(--line);}
+.site-nav .brand{font-weight:700;font-size:1.15rem;color:var(--ink);cursor:pointer;background:none;border:none;font-family:inherit;}
+.site-nav .brand span{color:var(--orange-deep);}
+.site-nav .links{display:flex;gap:22px;align-items:center;}
+.site-nav .links button.navlink{background:none;border:none;color:var(--ink-soft);font-weight:500;font-size:.92rem;cursor:pointer;font-family:inherit;padding:0;margin:0;}
+.site-nav .links button.navlink.active{color:var(--orange-deep);}
+.site-nav .cta{background:var(--orange);color:#fff;padding:9px 18px;border-radius:999px;font-weight:600;font-size:.88rem;border:none;cursor:pointer;font-family:inherit;}
+.site-nav .cta:hover{background:var(--orange-deep);}
+.nav-toggle{display:none;background:none;border:none;font-size:1.4rem;cursor:pointer;}
+@media (max-width:760px){
+  .site-nav .links{position:fixed;top:64px;left:0;right:0;background:var(--card-cream);flex-direction:column;align-items:flex-start;padding:14px 28px;border-bottom:1px solid var(--line);display:none;gap:14px;}
+  .site-nav .links.open{display:flex;}
+  .nav-toggle{display:block;}
+}
+footer.site-footer{padding:34px 0 50px;text-align:center;color:var(--ink-soft);font-size:.85rem;border-top:1px solid var(--line);margin-top:60px;}
+
+/* homepage */
+.hp-hero{position:relative;padding:90px 0 76px;text-align:center;background:radial-gradient(ellipse at 10% -10%, rgba(224,122,44,0.14), transparent 45%),radial-gradient(ellipse at 100% 0%, rgba(76,140,82,0.14), transparent 42%),var(--bg);border-bottom:1px solid var(--line);}
+.hp-hero.compact{padding:56px 0 40px;}
+.hp-hero .eyebrow{display:inline-block;font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--green-deep);font-weight:700;margin-bottom:20px;padding:6px 16px;border:1px solid rgba(76,140,82,.35);border-radius:999px;background:rgba(76,140,82,.08);}
+.hp-hero h1{font-size:clamp(2.2rem,5vw,3.6rem);line-height:1.08;}
+.hp-hero h1 .vn{display:block;font-size:.4em;font-weight:400;color:var(--ink-soft);margin-top:10px;}
+.hp-hero p{max-width:560px;margin:20px auto 0;color:var(--ink-soft);font-size:1.05rem;}
+.hp-hero .actions{display:flex;gap:14px;justify-content:center;margin-top:34px;flex-wrap:wrap;}
+.btn{display:inline-block;padding:13px 26px;border-radius:10px;font-weight:600;font-size:.95rem;cursor:pointer;border:1px solid transparent;font-family:inherit;}
+.btn-primary{background:var(--orange);color:#fff;}
+.btn-primary:hover{background:var(--orange-deep);}
+.btn-secondary{background:var(--card-cream);color:var(--ink);border-color:var(--line);}
+.btn-secondary:hover{border-color:var(--green);}
+.board-strip{display:flex;justify-content:center;gap:10px;margin-top:50px;}
+.board-strip .pit{width:16px;height:16px;border-radius:50%;background:var(--wood);opacity:.5;}
+.board-strip .pit.big{width:26px;height:26px;background:var(--orange);opacity:1;}
+.hp-section{padding:60px 0;}
+.hp-section + .hp-section{border-top:1px solid var(--line);}
+.hp-section h2{font-size:1.7rem;text-align:center;margin-bottom:10px;}
+.hp-section .sub{text-align:center;color:var(--ink-soft);max-width:520px;margin:0 auto 36px;}
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+.feature-card{background:var(--card-cream);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);}
+.feature-card .ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:14px;}
+.feature-card:nth-child(3n+1) .ic{background:rgba(224,122,44,.15);color:var(--orange-deep);}
+.feature-card:nth-child(3n+2) .ic{background:rgba(76,140,82,.15);color:var(--green-deep);}
+.feature-card:nth-child(3n+3) .ic{background:rgba(138,106,70,.18);color:var(--wood);}
+.feature-card h4{font-size:1rem;margin-bottom:6px;}
+.feature-card p{margin:0;font-size:.88rem;color:var(--ink-soft);}
+.quicklinks{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;}
+.quicklink{background:var(--card-cream);border:1px solid var(--line);border-radius:12px;padding:20px 26px;text-align:center;min-width:150px;cursor:pointer;font-family:inherit;}
+.quicklink .n{font-weight:700;color:var(--ink);}
+.quicklink .d{font-size:.82rem;color:var(--ink-soft);margin-top:4px;}
+
+/* rulebook */
+.rb-wrap{max-width:760px;margin:0 auto;padding:50px 28px 80px;}
+.rb-toolbar{display:flex;justify-content:flex-start;align-items:center;margin-bottom:30px;flex-wrap:wrap;gap:12px;}
+.lang-toggle{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;}
+.lang-toggle button{border:none;background:var(--card-cream);padding:9px 18px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit;}
+.lang-toggle button.active{background:var(--green);color:#fff;}
+.rb-section{margin-bottom:34px;}
+.rb-section h3{color:var(--green-deep);font-size:1.05rem;border-bottom:2px solid var(--line);padding-bottom:8px;margin-bottom:12px;}
+.rb-section p, .rb-section li{color:var(--ink);font-size:.95rem;}
+body.lang-vn .rb-section[data-lang="en"]{display:none;}
+.rb-section[data-lang="vn"]{display:none;}
+body.lang-vn .rb-section[data-lang="vn"]{display:block;}
+
+/* community */
+.community-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:30px;align-items:start;padding:50px 0 80px;}
+.post-form{display:flex;flex-direction:column;gap:10px;background:var(--card-cream);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:20px;}
+.post-form input, .post-form textarea{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;resize:vertical;}
+.post{background:var(--card-cream);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px;}
+.post .meta{font-size:.78rem;color:var(--ink-soft);margin-bottom:6px;}
+.post .meta b{color:var(--ink);}
+.side-card{background:var(--card-cream);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:20px;}
+.side-card h4{font-size:.95rem;margin-bottom:12px;color:var(--green-deep);}
+.leader-row{display:flex;justify-content:space-between;font-size:.88rem;padding:7px 0;border-bottom:1px dashed var(--line);}
+.leader-row:last-child{border-bottom:none;}
+.leader-row .rank{color:var(--orange-deep);font-weight:700;width:22px;}
+.badge-chip{display:inline-block;background:rgba(224,122,44,.14);color:var(--orange-deep);font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:999px;margin:2px 4px 2px 0;}
+.article{font-size:.88rem;color:var(--ink-soft);}
+.article + .article{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);}
+
+/* game screen */
+main#game-wrap{max-width:900px;margin:0 auto;padding:20px 28px 60px;}
+main#lobby.panel{max-width:480px;margin:60px auto;text-align:center;padding:0 20px;}
+button{font-family:'Roboto',Arial,sans-serif;font-weight:600;font-size:.95rem;padding:12px 20px;border-radius:10px;border:1px solid var(--line);background:var(--card-cream);color:var(--ink);cursor:pointer;margin:8px 6px;}
+button:hover{border-color:var(--orange);}
+button:disabled{opacity:.4;cursor:not-allowed;}
+button.secondary{background:transparent;}
+.join-row{display:flex;gap:8px;margin-top:20px;}
+.join-row input{flex:1;padding:10px 12px;border-radius:8px;border:1px solid var(--line);}
+.share-id{font-size:.85rem;color:var(--ink-soft);word-break:break-all;}
+.mode-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:18px 0;}
+.name-row{margin-top:10px;}
+.name-row input{padding:10px 12px;border-radius:8px;border:1px solid var(--line);width:220px;}
+section.game-section{margin-bottom:22px;}
+section.game-section h3{font-size:.95rem;color:var(--ink-soft);margin:0 0 10px;}
+.row{display:flex;flex-wrap:wrap;gap:8px;min-height:60px;}
+.card{width:64px;height:88px;border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:.78rem;font-weight:600;padding:6px;cursor:pointer;border:1px solid var(--line);background:var(--card-cream);box-shadow:0 3px 0 rgba(46,42,31,.08);transition:transform .1s;}
+.card:hover{transform:translateY(-3px);}
+.card.scoring{border-left:5px solid var(--green);}
+.card.action{border-left:5px solid var(--orange);}
+.card.back{background:var(--wood);color:var(--card-cream);font-size:1.4rem;cursor:default;}
+.card.back:hover{transform:none;}
+.scores{display:flex;gap:24px;font-weight:600;padding:12px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);flex-wrap:wrap;}
+#action-bar{display:flex;align-items:center;gap:14px;margin:14px 0;flex-wrap:wrap;}
+#hint{color:var(--ink-soft);font-size:.88rem;}
+.log{background:var(--card-cream);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:.8rem;color:var(--ink-soft);max-height:160px;overflow-y:auto;}
+.status{font-weight:600;color:var(--orange-deep);}
+.profile-bar{display:flex;gap:18px;align-items:center;flex-wrap:wrap;background:var(--card-cream);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:.85rem;}
+.profile-bar .badges{display:flex;flex-wrap:wrap;}
+
+/* chatbot */
+.chat-toggle{position:fixed;bottom:22px;right:22px;width:54px;height:54px;border-radius:50%;background:var(--orange);color:#fff;border:none;font-size:1.3rem;cursor:pointer;box-shadow:0 6px 16px rgba(46,42,31,.25);z-index:40;}
+.chat-panel{position:fixed;bottom:88px;right:22px;width:320px;max-height:440px;background:var(--card-cream);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 30px rgba(46,42,31,.22);display:flex;flex-direction:column;overflow:hidden;z-index:40;}
+.chat-head{display:flex;justify-content:space-between;align-items:center;background:var(--green);color:#fff;padding:10px 14px;font-weight:600;font-size:.88rem;}
+.chat-head button{background:none;border:none;color:#fff;cursor:pointer;font-size:.9rem;padding:0;margin:0;}
+.chat-messages{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;font-size:.85rem;}
+.chat-msg{padding:8px 11px;border-radius:10px;max-width:85%;line-height:1.4;}
+.chat-msg.bot{background:var(--bg);align-self:flex-start;}
+.chat-msg.user{background:var(--orange);color:#fff;align-self:flex-end;}
+.chat-form{display:flex;border-top:1px solid var(--line);}
+.chat-form input{flex:1;border:none;padding:10px 12px;font-family:inherit;font-size:.85rem;background:transparent;}
+.chat-form input:focus{outline:none;}
+.chat-form button{margin:6px;padding:8px 14px;}
+
+/* tutorial overlay */
+.tutorial-overlay{position:fixed;inset:0;background:rgba(46,42,31,.6);display:flex;align-items:center;justify-content:center;z-index:60;padding:20px;}
+.tutorial-card{background:var(--card-cream);border-radius:16px;max-width:420px;padding:28px;text-align:center;}
+.tutorial-card h3{color:var(--orange-deep);}
+.tutorial-card .step-count{font-size:.78rem;color:var(--ink-soft);margin-bottom:14px;}
+.tutorial-card .tut-actions{display:flex;justify-content:space-between;margin-top:22px;}
+
+@media (max-width:820px){
+  .feature-grid{grid-template-columns:1fr;}
+  .community-grid{grid-template-columns:1fr;padding-left:20px;padding-right:20px;}
+}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto;}}
+</style>
+</head>
+<body>
+
+<!-- ============================== NAV ============================== -->
+<nav class="site-nav">
+  <button class="brand" onclick="showPage('home')">Ô Ăn Quan <span>Portable</span></button>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Menu">☰</button>
+  <div class="links" id="nav-links">
+    <button class="navlink" data-page="home" onclick="showPage('home')">Home</button>
+    <button class="navlink" data-page="play" onclick="showPage('play')">Play</button>
+    <button class="navlink" data-page="rulebook" onclick="showPage('rulebook')">Rulebook</button>
+    <button class="navlink" data-page="community" onclick="showPage('community')">Community</button>
+    <button class="cta" onclick="showPage('play')">Play Now</button>
+  </div>
+</nav>
+
+<!-- ============================== HOME ============================== -->
+<div id="page-home">
+  <header class="hp-hero">
+    <div class="wrap">
+      <span class="eyebrow">Digitizing a Vietnamese folk classic</span>
+      <h1>Ô Ăn Quan<span class="vn">A card game rooted in a centuries-old tradition of counting seeds and houses</span></h1>
+      <p>Play against a Gemini-powered AI opponent, challenge a friend online, or learn the rules — all in one place, in English and Vietnamese.</p>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="showPage('play')">Play Now</button>
+        <button class="btn btn-secondary" onclick="showPage('rulebook')">Read the Rulebook</button>
+      </div>
+      <div class="board-strip" aria-hidden="true">
+        <div class="pit big"></div>
+        <div class="pit"></div><div class="pit"></div><div class="pit"></div>
+        <div class="pit"></div><div class="pit"></div><div class="pit"></div>
+        <div class="pit big"></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="hp-section">
+    <div class="wrap">
+      <h2>Everything in the box, now on screen</h2>
+      <p class="sub">The same 54-card deck and scoring rules from the physical edition — with a few things only software can do.</p>
+      <div class="feature-grid">
+        <div class="feature-card"><div class="ic">🎮</div><h4>Local &amp; Online Play</h4><p>Hot-seat with a friend on one screen, challenge the AI opponent, or get matched with another player online.</p></div>
+        <div class="feature-card"><div class="ic">🌐</div><h4>Bilingual Throughout</h4><p>English and Vietnamese toggle across the rulebook and interface, built to expand to more languages later.</p></div>
+        <div class="feature-card"><div class="ic">🤖</div><h4>AI Opponent &amp; Assistant</h4><p>A Gemini-powered opponent that actually plays to win, plus an in-game assistant for rules questions and strategy tips.</p></div>
+        <div class="feature-card"><div class="ic">🔔</div><h4>Captures, Swaps, Steals</h4><p>Every Action card move plays out with a visible board update and a running log of what just happened.</p></div>
+        <div class="feature-card"><div class="ic">📊</div><h4>Stats &amp; Leaderboards</h4><p>Track games played and win rate, climb the leaderboard, and unlock badges like Master of Quan.</p></div>
+        <div class="feature-card"><div class="ic">📖</div><h4>Bilingual Rulebook</h4><p>The full rulebook right in the browser, in English and Vietnamese.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hp-section">
+    <div class="wrap">
+      <h2>Find your way around</h2>
+      <div class="quicklinks">
+        <button class="quicklink" onclick="showPage('play')"><div class="n">Play</div><div class="d">Start a game</div></button>
+        <button class="quicklink" onclick="showPage('rulebook')"><div class="n">Rulebook</div><div class="d">Learn the rules</div></button>
+        <button class="quicklink" onclick="showPage('community')"><div class="n">Community</div><div class="d">Leaderboard &amp; posts</div></button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============================== PLAY ============================== -->
+<div id="page-play" class="hidden">
+  <main id="lobby" class="panel">
+    <h2>Start a game</h2>
+    <div class="name-row"><input id="player-name" placeholder="Your name (for stats & leaderboard)" maxlength="30" /></div>
+    <div class="mode-row">
+      <button id="btn-vs-ai">Play vs Gemini AI</button>
+      <button id="btn-matchmake">Find a match</button>
+      <button id="btn-create-online">Create private 1v1</button>
+      <button id="btn-tutorial" class="secondary">How to play</button>
+    </div>
+    <div class="join-row">
+      <input id="join-id" placeholder="Paste game ID to join" />
+      <button id="btn-join">Join game</button>
+    </div>
+    <p id="share-id" class="share-id"></p>
+    <p id="matchmake-status" class="share-id"></p>
+  </main>
+
+  <main id="game-wrap" class="hidden">
+    <div class="profile-bar">
+      <span id="status" class="status">Not connected</span>
+      <span id="profile-stats"></span>
+      <span class="badges" id="profile-badges"></span>
+    </div>
+    <section class="game-section"><h3>Opponent hand (<span id="opp-count">0</span>)</h3><div id="opp-hand" class="row"></div></section>
+    <section class="game-section"><h3>Shared Row</h3><div id="shared-row" class="row"></div></section>
+    <section class="game-section scores">
+      <div>You: <span id="my-score">0</span></div>
+      <div>Draw pile: <span id="pile-count">0</span></div>
+      <div>Opponent: <span id="opp-score">0</span></div>
+    </section>
+    <section class="game-section"><h3>Your hand</h3><div id="my-hand" class="row"></div></section>
+    <div id="action-bar" class="hidden">
+      <button id="btn-draw">Draw a card</button>
+      <span id="hint"></span>
+      <button id="btn-cancel" class="secondary hidden">Cancel</button>
+    </div>
+    <section class="game-section log"><h3>Log</h3><div id="log"></div></section>
+  </main>
+</div>
+
+<!-- ============================== RULEBOOK ============================== -->
+<div id="page-rulebook" class="hidden">
+  <div class="rb-wrap">
+    <div class="rb-toolbar">
+      <div class="lang-toggle">
+        <button id="lang-en" class="active">English</button>
+        <button id="lang-vn">Tiếng Việt</button>
+      </div>
+    </div>
+
+    <div class="rb-section" data-lang="en">
+      <h3>Goal</h3>
+      <p>Score the most points by capturing Dân and Quan cards from the Shared Row before the game ends.</p>
+    </div>
+    <div class="rb-section" data-lang="en">
+      <h3>Cards</h3>
+      <p>The 54-card deck: 40 Dân cards (20× Dân 1 worth 1 point, 12× Dân 2 worth 2 points, 8× Dân 3 worth 3 points), 2 Quan cards worth 5 points each, and 12 Action cards — two each of Capture, Swap, Steal, Block, Reverse, and Double Move.</p>
+    </div>
+    <div class="rb-section" data-lang="en">
+      <h3>Setup</h3>
+      <p>Each player draws 5 cards. 3 cards are placed face-up in the Shared Row. The rest form the draw pile.</p>
+    </div>
+    <div class="rb-section" data-lang="en">
+      <h3>Turn Structure</h3>
+      <p>On your turn, either play a card or draw a card. Dân and Quan cards played from your hand go into the Shared Row.</p>
+    </div>
+    <div class="rb-section" data-lang="en">
+      <h3>Actions</h3>
+      <ul>
+        <li><b>Capture</b> — take any Dân or Quan card from the Shared Row straight into your score.</li>
+        <li><b>Swap</b> — exchange one card from your hand with one card in the Shared Row.</li>
+        <li><b>Steal</b> — take one random card from your opponent's hand.</li>
+        <li><b>Block</b> — cancels the next Action card your opponent plays.</li>
+        <li><b>Reverse</b> — your opponent's next turn is skipped.</li>
+        <li><b>Double Move</b> — you immediately take another turn.</li>
+      </ul>
+    </div>
+    <div class="rb-section" data-lang="en">
+      <h3>End Conditions</h3>
+      <p>The game ends when the draw pile is empty, the Shared Row drops below 2 cards, or a player reaches 20 points.</p>
+    </div>
+    <div class="rb-section" data-lang="en">
+      <h3>Scoring</h3>
+      <p>Dân cards are worth 1–3 points depending on rank; Quan cards are worth 5 points. Whoever has the higher score when the game ends wins; equal scores are a draw.</p>
+    </div>
+
+    <div class="rb-section" data-lang="vn">
+      <h3>Mục tiêu</h3>
+      <p>Ghi được nhiều điểm nhất bằng cách "ăn" các lá Dân và Quan từ Hàng Chung trước khi trò chơi kết thúc.</p>
+    </div>
+    <div class="rb-section" data-lang="vn">
+      <h3>Bộ bài</h3>
+      <p>Bộ bài gồm 54 lá: 40 lá Dân (20 lá Dân 1 — 1 điểm, 12 lá Dân 2 — 2 điểm, 8 lá Dân 3 — 3 điểm), 2 lá Quan (5 điểm mỗi lá), và 12 lá Hành Động — mỗi loại 2 lá: Ăn, Đổi, Trộm, Chặn, Đảo, Đi Đôi.</p>
+    </div>
+    <div class="rb-section" data-lang="vn">
+      <h3>Chuẩn bị</h3>
+      <p>Mỗi người chơi rút 5 lá bài. 3 lá được đặt úp ngửa vào Hàng Chung. Số bài còn lại tạo thành chồng bài rút.</p>
+    </div>
+    <div class="rb-section" data-lang="vn">
+      <h3>Lượt chơi</h3>
+      <p>Mỗi lượt, người chơi chọn đánh một lá bài hoặc rút một lá bài. Lá Dân và Quan đánh ra từ tay sẽ được đặt vào Hàng Chung.</p>
+    </div>
+    <div class="rb-section" data-lang="vn">
+      <h3>Hành động</h3>
+      <ul>
+        <li><b>Ăn</b> — lấy một lá Dân hoặc Quan bất kỳ từ Hàng Chung về điểm số của bạn.</li>
+        <li><b>Đổi</b> — đổi một lá trên tay bạn với một lá trong Hàng Chung.</li>
+        <li><b>Trộm</b> — lấy ngẫu nhiên một lá bài từ tay đối thủ.</li>
+        <li><b>Chặn</b> — vô hiệu hóa lá Hành Động tiếp theo mà đối thủ đánh ra.</li>
+        <li><b>Đảo</b> — bỏ qua lượt tiếp theo của đối thủ.</li>
+        <li><b>Đi Đôi</b> — bạn được đi thêm một lượt ngay sau lượt này.</li>
+      </ul>
+    </div>
+    <div class="rb-section" data-lang="vn">
+      <h3>Điều kiện kết thúc</h3>
+      <p>Trò chơi kết thúc khi chồng bài rút hết, Hàng Chung còn ít hơn 2 lá, hoặc một người chơi đạt 20 điểm.</p>
+    </div>
+    <div class="rb-section" data-lang="vn">
+      <h3>Tính điểm</h3>
+      <p>Lá Dân trị giá 1–3 điểm tùy loại; lá Quan trị giá 5 điểm. Người có điểm cao hơn khi trò chơi kết thúc sẽ thắng; bằng điểm là hòa.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== COMMUNITY ============================== -->
+<div id="page-community" class="hidden">
+  <header class="hp-hero compact">
+    <div class="wrap">
+      <h1 style="font-size:clamp(1.8rem,4vw,2.6rem);">Community</h1>
+      <p>Leaderboard, player badges, and a place to talk about the game.</p>
+    </div>
+  </header>
+  <div class="wrap community-grid">
+    <div>
+      <h3>Discussion</h3>
+      <form id="post-form" class="post-form">
+        <input id="post-author" placeholder="Your name" maxlength="40" required />
+        <textarea id="post-content" placeholder="Share a strategy, ask a question, or say hi..." rows="3" maxlength="1000" required></textarea>
+        <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Post</button>
+      </form>
+      <div id="posts-list"></div>
+
+      <div class="side-card" style="margin-top:30px;">
+        <h4>About the game</h4>
+        <div class="article">
+          <p>Ô Ăn Quan is a traditional Vietnamese board game in the mancala family, historically played by children on a rectangular board scratched into the ground, using pebbles, seeds, or small stones as pieces. Players move around a row of small houses trying to capture their opponent's pieces — the version here reimagines that same capture-and-count spirit as a 54-card game.</p>
+          <p>This portable edition keeps the two core ideas intact: a shared pool of pieces (here, the Shared Row) that both players draw value from, and a "capture" action that converts board presence into banked score — just expressed through cards and Action-card tactics instead of stones on a board.</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="side-card"><h4>Leaderboard</h4><div id="leaderboard-list">Loading…</div></div>
+      <div class="side-card"><h4>Your stats</h4><div id="my-stats">Play a game to see your stats here.</div></div>
+      <div class="side-card"><h4>Events</h4><div class="article"><p>No events posted yet — check back soon, or post an announcement in Discussion.</p></div></div>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer"><div class="wrap">Ô Ăn Quan — Portable Edition · a digital adaptation of a traditional Vietnamese folk game</div></footer>
+
+<!-- ============================== CHATBOT (Play page only) ============================== -->
+<button id="chat-toggle" class="chat-toggle hidden" aria-label="Open assistant">💬</button>
+<div id="chat-panel" class="chat-panel hidden">
+  <div class="chat-head"><span>Rules &amp; Strategy Assistant</span><button id="chat-close" aria-label="Close">✕</button></div>
+  <div id="chat-messages" class="chat-messages"><div class="chat-msg bot">Hi! Ask me about rules, what a card does, or for strategy advice on the current board.</div></div>
+  <form id="chat-form" class="chat-form"><input id="chat-input" placeholder="Ask something..." autocomplete="off" /><button type="submit">Send</button></form>
+</div>
+
+<div id="tutorial-overlay" class="tutorial-overlay hidden">
+  <div class="tutorial-card">
+    <div class="step-count" id="tut-count">Step 1 of 6</div>
+    <h3 id="tut-title"></h3>
+    <p id="tut-body"></p>
+    <div class="tut-actions"><button id="tut-skip" class="secondary">Skip</button><button id="tut-next" class="btn btn-primary">Next</button></div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   CONFIG — edit these three values before uploading, then you're done.
+   ========================================================================== */
+const OAQ_CONFIG = {
+  SUPABASE_URL: "https://cxsnvncqaezvrlifsgja.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4c252bmNxYWV6dnJsaWZzZ2phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyNzQzOTgsImV4cCI6MjEwMTg1MDM5OH0.5Y9H0uasU64BFNoA7w1uqxERmK580vIOxsY5VV87Oco",
+  WORKER_URL: "https://oaq-worker.lacnka.workers.dev",
+};
+
+/* ==========================================================================
+   PAGE SWITCHING (replaces separate HTML pages)
+   ========================================================================== */
+function showPage(name) {
+  ["home", "play", "rulebook", "community"].forEach((p) => {
+    document.getElementById(`page-${p}`).classList.toggle("hidden", p !== name);
+  });
+  document.querySelectorAll(".navlink").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.page === name);
+  });
+  document.getElementById("nav-links").classList.remove("open");
+  document.getElementById("chat-toggle").classList.toggle("hidden", name !== "play");
+  if (name !== "play") document.getElementById("chat-panel").classList.add("hidden");
+  if (name === "community") { loadPosts(); loadLeaderboard(); loadMyStats(); }
+  window.scrollTo(0, 0);
+}
+document.getElementById("nav-toggle").onclick = () => document.getElementById("nav-links").classList.toggle("open");
+showPage("home");
+
+/* ==========================================================================
+   SHARED: Supabase client + player identity
+   ========================================================================== */
+const sb = window.supabase.createClient(OAQ_CONFIG.SUPABASE_URL, OAQ_CONFIG.SUPABASE_ANON_KEY);
+const WORKER_URL = OAQ_CONFIG.WORKER_URL;
+const PLAYER_ID = localStorage.getItem("oaq_player_id") || crypto.randomUUID();
+localStorage.setItem("oaq_player_id", PLAYER_ID);
+const savedName = localStorage.getItem("oaq_player_name") || "";
+
+const BADGE_LABELS = {
+  first_victory: "First Victory", master_of_quan: "Master of Quan",
+  century_club: "Century Club", on_a_roll: "On a Roll",
+};
+function escapeHtml(s) {
+  const div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+/* ==========================================================================
+   RULEBOOK: language toggle
+   ========================================================================== */
+document.getElementById("lang-en").onclick = () => {
+  document.body.classList.remove("lang-vn");
+  document.getElementById("lang-en").classList.add("active");
+  document.getElementById("lang-vn").classList.remove("active");
+};
+document.getElementById("lang-vn").onclick = () => {
+  document.body.classList.add("lang-vn");
+  document.getElementById("lang-vn").classList.add("active");
+  document.getElementById("lang-en").classList.remove("active");
+};
+
+/* ==========================================================================
+   COMMUNITY: posts, leaderboard, stats
+   ========================================================================== */
+async function loadPosts() {
+  const { data, error } = await sb.from("posts").select("*").order("created_at", { ascending: false }).limit(50);
+  const list = document.getElementById("posts-list");
+  if (error || !data || !data.length) {
+    list.innerHTML = `<p style="color:var(--ink-soft);font-size:.88rem;">No posts yet — be the first to say something.</p>`;
+    return;
+  }
+  list.innerHTML = data.map((p) => `<div class="post"><div class="meta"><b>${escapeHtml(p.author)}</b> · ${new Date(p.created_at).toLocaleString()}</div><div>${escapeHtml(p.content)}</div></div>`).join("");
+}
+document.getElementById("post-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const author = document.getElementById("post-author").value.trim();
+  const content = document.getElementById("post-content").value.trim();
+  if (!author || !content) return;
+  const { error } = await sb.from("posts").insert({ author, content });
+  if (!error) {
+    document.getElementById("post-content").value = "";
+    loadPosts();
+  }
+});
+async function loadLeaderboard() {
+  const el = document.getElementById("leaderboard-list");
+  try {
+    const res = await fetch(`${WORKER_URL}/api/leaderboard`);
+    const data = await res.json();
+    if (!data.leaderboard || !data.leaderboard.length) {
+      el.innerHTML = `<p style="color:var(--ink-soft);font-size:.85rem;">No games recorded yet.</p>`;
+      return;
+    }
+    el.innerHTML = data.leaderboard.map((p, i) => `<div class="leader-row"><span><span class="rank">${i + 1}.</span>${escapeHtml(p.display_name || "Player")}</span><span>${p.wins}W – ${p.losses}L – ${p.draws}D</span></div>`).join("");
+  } catch { el.innerHTML = `<p style="color:var(--ink-soft);font-size:.85rem;">Couldn't load the leaderboard.</p>`; }
+}
+async function loadMyStats() {
+  const el = document.getElementById("my-stats");
+  try {
+    const res = await fetch(`${WORKER_URL}/api/stats/${PLAYER_ID}`);
+    if (res.status === 404) { el.innerHTML = `<p style="color:var(--ink-soft);font-size:.85rem;">Play a game to see your stats here.</p>`; return; }
+    const p = await res.json();
+    const badges = (p.badges || []).map((b) => `<span class="badge-chip">${BADGE_LABELS[b] || b}</span>`).join("") || "<span style='color:var(--ink-soft);font-size:.82rem;'>None yet</span>";
+    el.innerHTML = `<div style="font-size:.88rem;margin-bottom:8px;">${p.games_played} games · ${p.wins}W – ${p.losses}L – ${p.draws}D</div><div class="badges">${badges}</div>`;
+  } catch { el.innerHTML = `<p style="color:var(--ink-soft);font-size:.85rem;">Couldn't load your stats.</p>`; }
+}
+
+/* ==========================================================================
+   PLAY: the game itself
+   ========================================================================== */
+let gameId = null, mySeat = null, currentGame = null, pendingAction = null, channel = null, pollTimer = null;
+const $ = (id) => document.getElementById(id);
+const CARD_LABEL = { Dan1: "Dân 1", Dan2: "Dân 2", Dan3: "Dân 3", Quan: "Quan", Capture: "Capture", Swap: "Swap", Steal: "Steal", Block: "Block", Reverse: "Reverse", DoubleMove: "Double Move" };
+const SCORING = new Set(["Dan1", "Dan2", "Dan3", "Quan"]);
+
+$("player-name").value = savedName;
+function playerName() {
+  const v = $("player-name").value.trim();
+  if (v) localStorage.setItem("oaq_player_name", v);
+  return v || undefined;
+}
+async function api(path, body) {
+  const res = await fetch(`${WORKER_URL}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Request failed.");
+  return data;
+}
+
+$("btn-vs-ai").onclick = async () => {
+  const game = await api("/api/create", { vsAi: true, playerId: PLAYER_ID, playerName: playerName() });
+  await enterGame(game.id, "p1");
+};
+$("btn-create-online").onclick = async () => {
+  const game = await api("/api/create", { vsAi: false, playerId: PLAYER_ID, playerName: playerName() });
+  await enterGame(game.id, "p1");
+  $("share-id").textContent = `Share this game ID with your opponent: ${game.id}`;
+};
+$("btn-join").onclick = async () => {
+  const id = $("join-id").value.trim();
+  if (!id) return;
+  const game = await api("/api/join", { gameId: id, playerId: PLAYER_ID, playerName: playerName() });
+  await enterGame(game.id, "p2");
+};
+$("btn-matchmake").onclick = async () => {
+  $("btn-matchmake").disabled = true;
+  $("matchmake-status").textContent = "Looking for an opponent...";
+  try {
+    const res = await api("/api/matchmake/join", { playerId: PLAYER_ID, playerName: playerName() });
+    if (res.matched) {
+      $("matchmake-status").textContent = "";
+      $("btn-matchmake").disabled = false;
+      await enterGame(res.gameId, res.seat);
+      return;
+    }
+    pollTimer = setInterval(async () => {
+      const poll = await api("/api/matchmake/poll", { playerId: PLAYER_ID });
+      if (poll.matched) {
+        clearInterval(pollTimer);
+        $("matchmake-status").textContent = "";
+        $("btn-matchmake").disabled = false;
+        await enterGame(poll.gameId, poll.seat);
+      }
+    }, 2000);
+  } catch (e) {
+    $("matchmake-status").textContent = e.message;
+    $("btn-matchmake").disabled = false;
+  }
+};
+$("btn-draw").onclick = async () => { await sendMove({ type: "draw" }); };
+$("btn-cancel").onclick = () => { pendingAction = null; render(currentGame); };
+
+async function enterGame(id, seat) {
+  if (pollTimer) clearInterval(pollTimer);
+  gameId = id; mySeat = seat;
+  $("lobby").classList.add("hidden");
+  $("game-wrap").classList.remove("hidden");
+  $("chat-toggle").classList.remove("hidden");
+  subscribe();
+  const res = await fetch(`${WORKER_URL}/api/game/${id}`);
+  currentGame = await res.json();
+  render(currentGame);
+  maybeTriggerAi();
+}
+function subscribe() {
+  channel = sb.channel(`game-${gameId}`)
+    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, (payload) => {
+      currentGame = payload.new;
+      render(currentGame);
+      maybeTriggerAi();
+    })
+    .subscribe();
+}
+async function maybeTriggerAi() {
+  if (!currentGame) return;
+  if (currentGame.vs_ai && currentGame.status === "active" && currentGame.turn === "p2") {
+    $("status").textContent = "Gemini is thinking...";
+    try { await api("/api/ai-move", { gameId }); } catch (e) { console.error(e); }
+  }
+  if (currentGame.status === "finished") loadProfile();
+}
+async function sendMove(move) {
+  try { await api("/api/move", { gameId, playerId: PLAYER_ID, move }); pendingAction = null; }
+  catch (e) { alert(e.message); }
+}
+function render(game) {
+  if (!game) return;
+  const oppSeat = mySeat === "p1" ? "p2" : "p1";
+  const state = game.state;
+  $("status").textContent = game.status === "waiting" ? "Waiting for opponent to join..." : game.status === "finished" ? `Game over — winner: ${game.winner}` : game.turn === mySeat ? "Your turn" : "Opponent's turn";
+  $("pile-count").textContent = state.drawPile.length;
+  $("my-score").textContent = state.scores[mySeat];
+  $("opp-score").textContent = state.scores[oppSeat];
+  $("opp-count").textContent = state.hands[oppSeat].length;
+  $("shared-row").innerHTML = "";
+  state.sharedRow.forEach((c) => $("shared-row").appendChild(cardEl(c, () => onCardClick(c, "row"))));
+  $("opp-hand").innerHTML = "";
+  state.hands[oppSeat].forEach(() => $("opp-hand").appendChild(cardBackEl()));
+  $("my-hand").innerHTML = "";
+  state.hands[mySeat].forEach((c) => $("my-hand").appendChild(cardEl(c, () => onCardClick(c, "hand"))));
+  $("log").innerHTML = state.log.slice(-12).reverse().map((l) => `<div>${l}</div>`).join("");
+  const myTurn = game.status === "active" && game.turn === mySeat;
+  $("action-bar").classList.toggle("hidden", !myTurn);
+  $("btn-draw").disabled = state.drawPile.length === 0;
+  $("hint").textContent = pendingAction ? `${CARD_LABEL[pendingAction.actionCard]}: choose a target` : myTurn ? "Click a card in your hand to play it, or draw." : "";
+  $("btn-cancel").classList.toggle("hidden", !pendingAction);
+}
+function cardEl(c, onClick) {
+  const div = document.createElement("div");
+  div.className = `card ${SCORING.has(c.kind) ? "scoring" : "action"}`;
+  div.textContent = CARD_LABEL[c.kind] + (c.value ? ` (${c.value})` : "");
+  div.onclick = onClick;
+  return div;
+}
+function cardBackEl() {
+  const div = document.createElement("div");
+  div.className = "card back";
+  div.textContent = "🂠";
+  return div;
+}
+async function onCardClick(c, zone) {
+  const game = currentGame;
+  if (!game || game.status !== "active" || game.turn !== mySeat) return;
+  if (zone === "hand") {
+    if (pendingAction && pendingAction.actionCard === "Swap" && pendingAction.stage === "pick-hand-card") {
+      if (c.id === pendingAction.cardId) return;
+      pendingAction.handCardId = c.id;
+      pendingAction.stage = "pick-row-card";
+      render(game);
+      return;
+    }
+    if (SCORING.has(c.kind)) { await sendMove({ type: "playToRow", cardId: c.id }); return; }
+    if (["Steal", "Block", "Reverse", "DoubleMove"].includes(c.kind)) { await sendMove({ type: "action", actionCard: c.kind, cardId: c.id }); return; }
+    if (c.kind === "Capture") { pendingAction = { actionCard: "Capture", cardId: c.id }; render(game); return; }
+    if (c.kind === "Swap") { pendingAction = { actionCard: "Swap", cardId: c.id, stage: "pick-hand-card" }; render(game); return; }
+  } else if (zone === "row") {
+    if (!pendingAction) return;
+    if (pendingAction.actionCard === "Capture") {
+      await sendMove({ type: "action", actionCard: "Capture", cardId: pendingAction.cardId, targetCardId: c.id });
+    } else if (pendingAction.actionCard === "Swap" && pendingAction.stage === "pick-row-card") {
+      await sendMove({ type: "action", actionCard: "Swap", cardId: pendingAction.cardId, handCardId: pendingAction.handCardId, targetCardId: c.id });
+    }
+  }
+}
+
+/* ---- chatbot ---- */
+const chatHistory = [];
+$("chat-toggle").onclick = () => $("chat-panel").classList.toggle("hidden");
+$("chat-close").onclick = () => $("chat-panel").classList.add("hidden");
+$("chat-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $("chat-input");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  addChatMsg("user", text);
+  chatHistory.push({ role: "user", text });
+  const thinking = addChatMsg("bot", "…");
+  try {
+    const res = await fetch(`${WORKER_URL}/api/chat`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text, history: chatHistory.slice(0, -1), gameId: gameId || null, playerId: PLAYER_ID }),
+    });
+    const data = await res.json();
+    thinking.textContent = data.reply || data.error || "Sorry, something went wrong.";
+    if (data.reply) chatHistory.push({ role: "assistant", text: data.reply });
+  } catch (err) { thinking.textContent = "Couldn't reach the assistant. Try again."; }
+});
+function addChatMsg(role, text) {
+  const div = document.createElement("div");
+  div.className = `chat-msg ${role === "user" ? "user" : "bot"}`;
+  div.textContent = text;
+  $("chat-messages").appendChild(div);
+  $("chat-messages").scrollTop = $("chat-messages").scrollHeight;
+  return div;
+}
+
+/* ---- profile bar ---- */
+async function loadProfile() {
+  try {
+    const res = await fetch(`${WORKER_URL}/api/stats/${PLAYER_ID}`);
+    if (res.status === 404) { $("profile-stats").textContent = ""; $("profile-badges").innerHTML = ""; return; }
+    const p = await res.json();
+    $("profile-stats").textContent = `${p.games_played} games · ${p.wins}W-${p.losses}L-${p.draws}D`;
+    $("profile-badges").innerHTML = (p.badges || []).map((b) => `<span class="badge-chip">${BADGE_LABELS[b] || b}</span>`).join("");
+  } catch {}
+}
+loadProfile();
+
+/* ---- tutorial ---- */
+const TUTORIAL_STEPS = [
+  { title: "Welcome", body: "Ô Ăn Quan is played with a 54-card deck. The goal: score the most points by capturing Dân and Quan cards before the game ends." },
+  { title: "Setup", body: "Each player draws 5 cards. 3 cards go face-up into the Shared Row in the middle. The rest form the draw pile." },
+  { title: "Your turn", body: "On your turn you either play one card, or draw one card from the pile." },
+  { title: "Scoring cards", body: "Dân cards (worth 1, 2, or 3 points) and Quan cards (worth 5 points) don't score by themselves — playing one from your hand just adds it to the Shared Row." },
+  { title: "Action cards", body: "Capture takes a Dân/Quan card from the Shared Row into your score. Swap, Steal, Block, Reverse, and Double Move each do a tactical move — tap the 💬 assistant any time you forget what one does." },
+  { title: "Ending the game", body: "The game ends when the draw pile is empty, the Shared Row drops below 2 cards, or someone reaches 20 points. Highest score wins!" },
+];
+let tutStep = 0;
+function renderTutorial() {
+  const s = TUTORIAL_STEPS[tutStep];
+  $("tut-count").textContent = `Step ${tutStep + 1} of ${TUTORIAL_STEPS.length}`;
+  $("tut-title").textContent = s.title;
+  $("tut-body").textContent = s.body;
+  $("tut-next").textContent = tutStep === TUTORIAL_STEPS.length - 1 ? "Got it" : "Next";
+}
+$("btn-tutorial").onclick = () => { tutStep = 0; renderTutorial(); $("tutorial-overlay").classList.remove("hidden"); };
+$("tut-skip").onclick = () => $("tutorial-overlay").classList.add("hidden");
+$("tut-next").onclick = () => {
+  if (tutStep === TUTORIAL_STEPS.length - 1) { $("tutorial-overlay").classList.add("hidden"); return; }
+  tutStep++; renderTutorial();
+};
+</script>
+</body>
+</html>
